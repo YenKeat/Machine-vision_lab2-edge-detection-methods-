@@ -1,0 +1,22 @@
+Gradient-based
+1) Sobel
+2) Scharr
+3) Robert
+4) Prewitt
+
+Gaussian-based
+1)Canny edge detection
+2)Laplacian of Gaussian
+
+Global thresholding
+1) Global thresholding
+2) Otsu's method
+
+Local thresholding
+1) Adaptive mean
+2) adaptive gaussian
+3) Niblack's method
+4) Souvola's method
+5) Bernsen's method
+
+K-mean clustering

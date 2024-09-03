@@ -1,0 +1,77 @@
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+
+# Open the image
+img = cv2.imread('pic2.png')
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+def roberts_cross_edge_detection(image):
+    # Convert the image to grayscale
+    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    
+    # Apply Roberts Cross kernels
+    kernel_x = np.array([[1, 0],
+                         [0, -1]])
+    kernel_y = np.array([[0, 1],
+                         [-1, 0]])
+                         
+    # Convolve the image with the kernels
+    horizontal_edges = cv2.filter2D(gray_image, -1, kernel_x)
+    vertical_edges = cv2.filter2D(gray_image, -1, kernel_y)
+    
+    # Ensure both arrays have the same data type
+    horizontal_edges = np.float32(horizontal_edges)
+    vertical_edges = np.float32(vertical_edges)
+    
+    # Compute gradient magnitude
+    gradient_magnitude = cv2.magnitude(horizontal_edges, vertical_edges)
+    
+    return gray_image,gradient_magnitude
+
+# Apply Roberts Cross edge detection with thresholding
+gray_image,gradient = roberts_cross_edge_detection(img)
+
+# Threshold the magnitude image to get binary mask
+_, mask = cv2.threshold(gradient, 15, 255, cv2.THRESH_BINARY)
+
+# Ensure mask is uint8
+mask = mask.astype(np.uint8)
+
+# Dilate the mask to ensure the entire object is covered
+kernel = np.ones((3, 3), np.uint8)
+mask = cv2.dilate(mask, kernel, iterations=1)
+
+# Invert the mask to get the background
+mask_inv = cv2.bitwise_not(mask)
+
+# Create a white background image
+white_background = np.ones_like(gray_image) * 255
+
+# Use the mask to extract the object from the original image
+object_only = cv2.bitwise_and(gray_image, gray_image, mask=mask)
+
+# Use the inverse mask to extract the background from the white background image
+background_only = cv2.bitwise_and(white_background, white_background, mask=mask_inv)
+
+# Combine the object and the white background
+final_image = cv2.add(object_only, background_only)
+
+# Plot the results
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 3, 1)
+plt.title('Original Image')
+plt.imshow(img, cmap='gray')
+plt.axis('off')
+
+plt.subplot(1, 3, 2)
+plt.title('Robert Detection')
+plt.imshow(gradient,cmap ='gray')
+plt.axis('off')
+
+plt.subplot(1, 3, 3)
+plt.title('Robert Detection with binary mask')
+plt.imshow(final_image,cmap ='gray')
+plt.axis('off')
+
+plt.show()

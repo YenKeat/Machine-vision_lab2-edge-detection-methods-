@@ -1,0 +1,82 @@
+import numpy as np
+import cv2
+from PIL import Image
+import matplotlib.pyplot as plt
+
+# Open the image
+img = cv2.imread('pic2.png')
+img = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+img = np.array(img).astype(np.uint8)
+
+# Convert to grayscale
+gray_image = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+
+# Apply Gaussian smoothing (optional)
+blurred_image = cv2.GaussianBlur(gray_image, (3, 3), 0)
+
+# Sobel operators
+Gx = cv2.Sobel(blurred_image, cv2.CV_64F, 1, 0, ksize=3)
+Gy = cv2.Sobel(blurred_image, cv2.CV_64F, 0, 1, ksize=3)
+
+# Gradient magnitude
+G = np.sqrt(Gx**2 + Gy**2)
+
+# Normalize to range 0-255
+Gx = np.uint8(255 * np.abs(Gx) / np.max(Gx))
+Gy = np.uint8(255 * np.abs(Gy) / np.max(Gy))
+G = np.uint8(255 * G / np.max(G))
+
+# Threshold the magnitude image to get binary mask
+_, mask = cv2.threshold(G, 15, 255, cv2.THRESH_BINARY)
+
+# Ensure mask is uint8
+mask = mask.astype(np.uint8)
+
+# Dilate the mask to ensure the entire object is covered
+kernel = np.ones((3, 3), np.uint8)
+mask = cv2.dilate(mask, kernel, iterations=1)
+
+# Invert the mask to get the background
+mask_inv = cv2.bitwise_not(mask)
+
+# Create a white background image
+white_background = np.ones_like(gray_image) * 255
+
+# Use the mask to extract the object from the original image
+object_only = cv2.bitwise_and(gray_image, gray_image, mask=mask)
+
+# Use the inverse mask to extract the background from the white background image
+background_only = cv2.bitwise_and(white_background, white_background, mask=mask_inv)
+
+# Combine the object and the white background
+final_image = cv2.add(object_only, background_only)
+
+# Plot the results
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 3, 1)
+plt.title('Original Image')
+plt.imshow(img, cmap='gray')
+plt.axis('off')
+
+plt.subplot(1, 3, 2)
+plt.title('Sobel X')
+plt.imshow(Gx,cmap ='gray')
+plt.axis('off')
+
+plt.subplot(1, 3, 3)
+plt.title('Sobel Y')
+plt.imshow(Gy,cmap ='gray')
+plt.axis('off')
+
+plt.figure(figsize=(12, 6))
+plt.subplot(2, 3, 1)
+plt.title('Sobel Detection')
+plt.imshow(G,cmap ='gray')
+plt.axis('off')
+
+plt.subplot(2, 3, 2)
+plt.title('Sobel Detection with binary mask')
+plt.imshow(final_image,cmap ='gray')
+plt.axis('off')
+
+plt.show()

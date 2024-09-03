@@ -1,0 +1,67 @@
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+
+# Open the image
+img = cv2.imread('pic7.png')
+img = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+
+def scharr_edge_detection(image):
+    # Convert to grayscale
+    gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    
+    # Apply Scharr operator to find the x and y gradients
+    Gx = cv2.Scharr(gray_image, cv2.CV_64F, 1, 0)
+    Gy = cv2.Scharr(gray_image, cv2.CV_64F, 0, 1)
+    
+    # Compute the gradient magnitude
+    gradient_magnitude = cv2.magnitude(Gx, Gy)
+    
+    return gray_image, gradient_magnitude
+    
+# Detect edges using Scharr operator
+gray_image, edges = scharr_edge_detection(img)
+    
+# Threshold the magnitude image to get binary mask
+_, mask = cv2.threshold(edges, 240, 255, cv2.THRESH_BINARY)
+
+# Ensure mask is uint8
+mask = mask.astype(np.uint8)
+
+# Dilate the mask to ensure the entire object is covered
+kernel = np.ones((3, 3), np.uint8)
+mask = cv2.dilate(mask, kernel, iterations=1)
+
+# Invert the mask to get the background
+mask_inv = cv2.bitwise_not(mask)
+
+# Create a white background image
+white_background = np.ones_like(gray_image) * 255
+
+# Use the mask to extract the object from the original image
+object_only = cv2.bitwise_and(gray_image, gray_image, mask=mask)
+
+# Use the inverse mask to extract the background from the white background image
+background_only = cv2.bitwise_and(white_background, white_background, mask=mask_inv)
+
+# Combine the object and the white background
+final_image = cv2.add(object_only, background_only)
+
+# Plot the results
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 3, 1)
+plt.title('Original Image')
+plt.imshow(img, cmap='gray')
+plt.axis('off')
+
+plt.subplot(1, 3, 2)
+plt.title('Scharr Detection')
+plt.imshow(edges,cmap ='gray')
+plt.axis('off')
+
+plt.subplot(1, 3, 3)
+plt.title('Scharr Detection with binary mask')
+plt.imshow(final_image,cmap ='gray')
+plt.axis('off')
+
+plt.show()

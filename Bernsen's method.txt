@@ -1,0 +1,67 @@
+import mahotas
+import cv2
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Open the image
+img = cv2.imread('pic4.png')
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+img = np.array(img).astype(np.uint8)
+
+# Convert to grayscale
+gray_image = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+
+# Apply Gaussian smoothing (optional)
+blurred_image = cv2.GaussianBlur(gray_image, (3, 3), 0)
+
+# Apply Bernsen's method using Mahotas
+window_size = 3
+contrast_threshold = 1000
+ 
+bernsen_result = mahotas.thresholding.bernsen(blurred_image, window_size, contrast_threshold)
+bernsen_result = bernsen_result.astype(np.uint8)
+
+# Threshold the magnitude image to get binary mask
+_, mask = cv2.threshold(bernsen_result, 0, 255, cv2.THRESH_BINARY)
+
+# Ensure mask is uint8
+mask = mask.astype(np.uint8)
+
+# Dilate the mask to ensure the entire object is covered
+kernel = np.ones((3, 3), np.uint8)
+mask = cv2.dilate(mask, kernel, iterations=1)
+
+# Invert the mask to get the background
+mask_inv = cv2.bitwise_not(mask)
+
+# Create a white background image
+white_background = np.ones_like(gray_image) * 255
+
+# Use the mask to extract the object from the original image
+object_only = cv2.bitwise_and(gray_image, gray_image, mask=mask)
+
+# Use the inverse mask to extract the background from the white background image
+background_only = cv2.bitwise_and(white_background, white_background, mask=mask_inv)
+
+# Combine the object and the white background
+final_image = cv2.add(object_only, background_only)
+final_image = ~final_image
+
+# Plot the results
+plt.figure(figsize=(12, 6))
+plt.subplot(1, 3, 1)
+plt.title('Original Image')
+plt.imshow(img)
+plt.axis('off')
+
+plt.subplot(1, 3, 2)
+plt.title('Bernsen threshold')
+plt.imshow(bernsen_result, cmap='gray')
+plt.axis('off')
+
+plt.subplot(1, 3, 3)
+plt.title('Bernsen threshold after background removal')
+plt.imshow(bernsen_result<final_image, cmap='gray')
+plt.axis('off')
+
+plt.show()
